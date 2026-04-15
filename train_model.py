@@ -21,7 +21,7 @@ y = df['margin_percentage']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=67)
 
 model = xgb.XGBRegressor(
-    n_estimators=500, 
+    n_estimators=230, 
     learning_rate=0.04, 
     max_depth=5, 
     random_state=67
