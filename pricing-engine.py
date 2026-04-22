@@ -68,7 +68,6 @@ while True:
         margin_low = round(predicted_margin_pct - error_margin, 2)
         margin_high = round(predicted_margin_pct + error_margin, 2)
 
-
         price_min = round(total_cost / (1 - (margin_low / 100)), 2)
         price_mid = round(total_cost / (1 - (predicted_margin_pct / 100)), 2)
         price_max = round(total_cost / (1 - (margin_high / 100)), 2)
