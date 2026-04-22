@@ -2,19 +2,21 @@ import pandas as pd
 import yfinance as yf
 import joblib
 from datetime import datetime
+import sys
 
+# Zaladowanie modelu
 try:
     model = joblib.load('freight_predictor_model.pkl')
 except:
-    print("Błąd: Nie znaleziono pliku modelu! Najpierw odpal trening.")
-    exit()
+    print("Blad: Nie znaleziono pliku freight_predictor_model.pkl! Najpierw odpal trening.")
+    sys.exit()
 
 def get_live_fuel_price():
     try:
         oil = yf.Ticker("BZ=F")
         current_price = oil.history(period="1d")['Close'].iloc[-1]
-        
-        estimated_pln_price = (current_price * 0.08)  
+        # Przelicznik na PLN za litr (uproszczony)
+        estimated_pln_price = (current_price * 0.07)  
         return round(estimated_pln_price, 2)
     except:
         return 6.50
@@ -25,34 +27,75 @@ def calculate_base_costs(distance, fuel_price, consumption=30, driver_km_rate=1.
     maintenance_cost = distance * maintenance_km_rate
     return round(fuel_cost + driver_cost + maintenance_cost, 2)
 
-distance_input = 1200
+print("=== CARGO KING INTELLIGENT PRICING SYSTEM ===")
+print("System ready. Fetching live market data...")
+
 today_price = get_live_fuel_price()
-now = datetime.now()
-current_month = now.month
-current_day = now.weekday()
+print(f"Current estimated fuel price: {today_price} PLN/L")
 
-total_cost = calculate_base_costs(distance_input, today_price)
+while True:
+    print("\n" + "="*50)
+    user_input = input("Enter route distance in km (or type 'exit' to quit): ").strip().lower()
 
-input_df = pd.DataFrame([[distance_input, current_month, current_day]], 
-                        columns=['distance', 'month', 'day_of_week'])
+    if user_input == 'exit':
+        print("Closing system... Standby.")
+        break
+    
+    if not user_input:
+        print("Error: Input cannot be empty!")
+        continue
 
-predicted_margin_pct = round(float(model.predict(input_df)[0]), 2)
+    try:
+        # Obsluga przecinka i konwersja na float
+        distance_input = float(user_input.replace(',', '.'))
 
-error_margin = 3.0
-margin_low = round(predicted_margin_pct - error_margin, 2)
-margin_high = round(predicted_margin_pct + error_margin, 2)
+        # Walidacja logiczna
+        if distance_input <= 0:
+            print("Error: Distance must be a positive number!")
+            continue
+        
+        if distance_input > 15000:
+            print("Warning: Extreme distance detected. Results may be less accurate.")
 
-price_min = round(total_cost / (1 - (margin_low / 100)), 2)
-price_mid = round(total_cost / (1 - (predicted_margin_pct / 100)), 2)
-price_max = round(total_cost / (1 - (margin_high / 100)), 2)
+        # Pobieranie czasu do modelu
+        now = datetime.now()
+        current_month = now.month
+        current_day = now.weekday()
 
-print("-" * 40)
-print(f"OFERTA DLA KLIENTA - TRASA {distance_input}km")
-print("-" * 40)
-print(f"Koszty operacyjne: {total_cost} PLN")
-print(f"Przewidywana marża: {predicted_margin_pct}% (+/- 3%)")
-print("-" * 40)
-print(f"CENA MINIMALNA:  {price_min} PLN (Marża: {margin_low}%)")
-print(f"CENA SUGEROWANA: {price_mid} PLN (Marża: {predicted_margin_pct}%)")
-print(f"CENA MAKSYMALNA: {price_max} PLN (Marża: {margin_high}%)")
-print("-" * 40)
+        # Obliczenia kosztow bazowych
+        total_cost = calculate_base_costs(distance_input, today_price)
+
+        # Przygotowanie danych dla modelu
+        input_df = pd.DataFrame([[distance_input, current_month, current_day]], 
+                                columns=['distance', 'month', 'day_of_week'])
+
+        # Predykcja marzy
+        predicted_margin_pct = round(float(model.predict(input_df)[0]), 2)
+
+        # Widelki bezpieczenstwa +/- 3%
+        error_margin = 3.0
+        margin_low = round(predicted_margin_pct - error_margin, 2)
+        margin_high = round(predicted_margin_pct + error_margin, 2)
+
+        # Wyliczanie cen koncowych (Price = Cost / (1 - Margin%))
+        price_min = round(total_cost / (1 - (margin_low / 100)), 2)
+        price_mid = round(total_cost / (1 - (predicted_margin_pct / 100)), 2)
+        price_max = round(total_cost / (1 - (margin_high / 100)), 2)
+
+        # Wyswietlanie wynikow
+        print("-" * 40)
+        print(f"OFFER FOR ROUTE: {distance_input} km")
+        print("-" * 40)
+        print(f"Operational Costs:   {total_cost} PLN")
+        print(f"Predicted Margin:    {predicted_margin_pct}% (+/- 3%)")
+        print("-" * 40)
+        print(f"MINIMUM PRICE:    {price_min} PLN (Margin: {margin_low}%)")
+        print(f"SUGGESTED PRICE:  {price_mid} PLN (Margin: {predicted_margin_pct}%)")
+        print(f"MAXIMUM PRICE:    {price_max} PLN (Margin: {margin_high}%)")
+        print("-" * 40)
+        
+    except ValueError:
+        print(f"Error: '{user_input}' is not a valid number. Please try again.")
+        continue
+
+print("System shutdown. Goodbye.")
