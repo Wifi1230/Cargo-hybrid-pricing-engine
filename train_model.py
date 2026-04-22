@@ -4,11 +4,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
 import joblib
 import matplotlib.pyplot as plt
+CAR_COST_PER_KM=2
+GAS_CONSUMPTION=30
 
 df = pd.read_csv('shipping_history.csv')
 
-df['fuel_costs'] = (df['distance'] / 100) * 30 * df['fuel_price']
-df['operating_costs'] = df['distance'] * (df['driver_rate'] + 2)
+df['fuel_costs'] = (df['distance'] / 100) * GAS_CONSUMPTION * df['fuel_price']
+df['operating_costs'] = df['distance'] * (df['driver_rate'] + CAR_COST_PER_KM)
 
 df['total_costs'] = df['fuel_costs'] + df['operating_costs']
 df['actual_margin_pln'] = df['final_rate'] - df['total_costs']
@@ -18,13 +20,13 @@ df['margin_percentage'] = (df['actual_margin_pln'] / df['final_rate']) * 100
 X = df[['distance', 'month', 'day_of_week']]
 y = df['margin_percentage']
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=67)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 model = xgb.XGBRegressor(
     n_estimators=230, 
     learning_rate=0.04, 
     max_depth=5, 
-    random_state=67
+    random_state=42
 )
 
 model.fit(

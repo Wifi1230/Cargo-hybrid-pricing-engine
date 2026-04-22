@@ -16,8 +16,8 @@ The **XGBoost Regressor** analyzes three primary features to determine the targe
 3.  **Day of Week:** Market demand fluctuations during the week.
 
 ### Training Performance:
-* **Mean Absolute Error (MAE):** 2.97%
-* **R2 Score:** 78.36%
+* **Mean Absolute Error (MAE):** 3%
+* **R2 Score:** 78%
 
 ## 📂 Project Structure
 * `data_generator.py`: Generates synthetic historical data with embedded cost logic.

@@ -4,7 +4,6 @@ import joblib
 from datetime import datetime
 import sys
 
-# Zaladowanie modelu
 try:
     model = joblib.load('freight_predictor_model.pkl')
 except:
@@ -15,7 +14,6 @@ def get_live_fuel_price():
     try:
         oil = yf.Ticker("BZ=F")
         current_price = oil.history(period="1d")['Close'].iloc[-1]
-        # Przelicznik na PLN za litr (uproszczony)
         estimated_pln_price = (current_price * 0.07)  
         return round(estimated_pln_price, 2)
     except:
@@ -27,7 +25,7 @@ def calculate_base_costs(distance, fuel_price, consumption=30, driver_km_rate=1.
     maintenance_cost = distance * maintenance_km_rate
     return round(fuel_cost + driver_cost + maintenance_cost, 2)
 
-print("=== CARGO KING INTELLIGENT PRICING SYSTEM ===")
+print("=== CARGOKING INTELLIGENT PRICING SYSTEM ===")
 print("System ready. Fetching live market data...")
 
 today_price = get_live_fuel_price()
@@ -46,10 +44,8 @@ while True:
         continue
 
     try:
-        # Obsluga przecinka i konwersja na float
         distance_input = float(user_input.replace(',', '.'))
 
-        # Walidacja logiczna
         if distance_input <= 0:
             print("Error: Distance must be a positive number!")
             continue
@@ -57,32 +53,26 @@ while True:
         if distance_input > 15000:
             print("Warning: Extreme distance detected. Results may be less accurate.")
 
-        # Pobieranie czasu do modelu
         now = datetime.now()
         current_month = now.month
         current_day = now.weekday()
 
-        # Obliczenia kosztow bazowych
         total_cost = calculate_base_costs(distance_input, today_price)
 
-        # Przygotowanie danych dla modelu
         input_df = pd.DataFrame([[distance_input, current_month, current_day]], 
                                 columns=['distance', 'month', 'day_of_week'])
 
-        # Predykcja marzy
         predicted_margin_pct = round(float(model.predict(input_df)[0]), 2)
 
-        # Widelki bezpieczenstwa +/- 3%
         error_margin = 3.0
         margin_low = round(predicted_margin_pct - error_margin, 2)
         margin_high = round(predicted_margin_pct + error_margin, 2)
 
-        # Wyliczanie cen koncowych (Price = Cost / (1 - Margin%))
+
         price_min = round(total_cost / (1 - (margin_low / 100)), 2)
         price_mid = round(total_cost / (1 - (predicted_margin_pct / 100)), 2)
         price_max = round(total_cost / (1 - (margin_high / 100)), 2)
 
-        # Wyswietlanie wynikow
         print("-" * 40)
         print(f"OFFER FOR ROUTE: {distance_input} km")
         print("-" * 40)
