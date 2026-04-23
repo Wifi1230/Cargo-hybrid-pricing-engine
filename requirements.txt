@@ -3,3 +3,4 @@ xgboost
 scikit-learn
 yfinance
 joblib
+matplotlib
